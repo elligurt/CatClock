@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using BepInEx;
 using CatClock.Tools;
 using UnityEngine;
-using Utilla;
 using CatClock.Behaviours;
 
 namespace CatClock
@@ -14,9 +13,7 @@ namespace CatClock
         private GameObject clockPrefab;
         private CatClockManager clockManager;
 
-        void Start() => Utilla.Events.GameInitialized += OnGameInitialized;
-
-        private async void OnGameInitialized(object sender, EventArgs e)
+        private async void Start()
         {
             await SetupClock();
         }
@@ -35,7 +32,7 @@ namespace CatClock
                 GameObject clockInstance = Instantiate(clockPrefab);
                 clockInstance.SetActive(true);
 
-                clockInstance.transform.position = new Vector3(-65.7865f, 11.7985f, - 79.762f);
+                clockInstance.transform.position = new Vector3(-65.7865f, 11.7985f, -79.762f);
                 clockInstance.transform.rotation = Quaternion.Euler(358.6325f, 266.6017f, 359.3513f);
                 clockInstance.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
