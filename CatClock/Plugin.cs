@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using BepInEx;
 using CatClock.Tools;
 using UnityEngine;
+using Utilla;
 using CatClock.Behaviours;
 
 namespace CatClock
@@ -10,10 +11,12 @@ namespace CatClock
     [BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
     public class Plugin : BaseUnityPlugin
     {
-        private GameObject clockPrefab;
-        private CatClockManager clockManager;
+        private GameObject _clockPrefab;
+        private CatClockManager _clockManager;
 
-        private async void Start()
+        void Start() => Utilla.Events.GameInitialized += OnGameInitialized;
+
+        private async void OnGameInitialized(object sender, EventArgs e)
         {
             await SetupClock();
         }
@@ -22,22 +25,22 @@ namespace CatClock
         {
             try
             {
-                clockPrefab = await AssetLoader.LoadAsset<GameObject>("CatClock");
-                if (clockPrefab == null)
+                _clockPrefab = await AssetLoader.LoadAsset<GameObject>("CatClock");
+                if (_clockPrefab == null)
                 {
                     Debug.LogError("[CatClock] Failed to load prefab.");
                     return;
                 }
 
-                GameObject clockInstance = Instantiate(clockPrefab);
+                GameObject clockInstance = Instantiate(_clockPrefab);
                 clockInstance.SetActive(true);
 
-                clockInstance.transform.position = new Vector3(-65.7865f, 11.7985f, -79.762f);
+                clockInstance.transform.position = new Vector3(-65.7865f, 11.7985f, - 79.762f);
                 clockInstance.transform.rotation = Quaternion.Euler(358.6325f, 266.6017f, 359.3513f);
                 clockInstance.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
-                clockManager = clockInstance.AddComponent<CatClockManager>();
-                clockManager.Initialize(clockInstance);
+                _clockManager = clockInstance.AddComponent<CatClockManager>();
+                _clockManager.Initialize(clockInstance);
 
                 ClockBobber bobber = clockInstance.AddComponent<ClockBobber>();
                 bobber.Initialize(clockInstance);
