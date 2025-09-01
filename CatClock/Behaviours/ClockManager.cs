@@ -27,7 +27,7 @@ namespace CatClock.Behaviours
             {
                 DateTime now = DateTime.Now;
 
-                if (clockTime != null && clockAMPM != null)
+                if (clockTime && clockAMPM)
                 {
                     clockTime.text = now.ToString("hh:mm");
                     clockAMPM.text = now.ToString("tt");
