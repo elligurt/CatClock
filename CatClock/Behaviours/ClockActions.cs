@@ -1,127 +1,65 @@
-﻿using CatClock.Tools;
-using UnityEngine;
+using System;
 using System.Threading.Tasks;
+using BepInEx;
+using CatClock.Tools;
+using UnityEngine;
+using Utilla;
+using CatClock.Behaviours;
 
-namespace CatClock.Behaviours
+namespace CatClock
 {
-    // this script manages bobbing, snapping to the init location, sounds, etc.
-    public class ClockActions : MonoBehaviour
+    [BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
+    public class Plugin : BaseUnityPlugin
     {
-        private const float BobbingAmplitude = 0.03f;
-        private const float BobbingSpeed = 0.4f;
-        private const float SnapDistance = 0.2f;
+        public static Plugin Instance { get; private set; }
 
-        private Transform _clockTransform;
-        private Vector3 _originalPosition;
-        private Quaternion _originalRotation;
-        private Vector3 _initialPosition;
-        private Quaternion _initialRotation;
-        private float _interpolationTime = 5f;
+        private GameObject _clockPrefab;
+        private CatClockManager _clockManager;
 
-        private AudioSource _audioSource;
-        private AudioClip _snapClip;
-        private AudioClip _pickClip;
-
-        private bool IsBeingGrabbed { get; set; }
-
-        public async void Initialize(GameObject clockPrefab)
+        private void Awake()
         {
-            _clockTransform = clockPrefab.transform.Find("Clock");
-            if (_clockTransform == null)
-            {
-                Debug.LogWarning("[CatClock] Clock not found");
-                return;
-            }
-
-            _originalPosition = _clockTransform.position;
-            _originalRotation = _clockTransform.rotation;
-            _initialPosition = _originalPosition;
-            _initialRotation = _originalRotation;
-
-            _audioSource = _clockTransform.gameObject.AddComponent<AudioSource>();
-            _audioSource.playOnAwake = false;
-            _audioSource.volume = 0.3f;
-
-            _snapClip = await AssetLoader.LoadAsset<AudioClip>("snap");
-            _pickClip = await AssetLoader.LoadAsset<AudioClip>("pick");
-
-            var holdable = _clockTransform.AddComponent<DevHoldable>();
-            holdable.OnPickUp += HandlePickUp;
-            holdable.OnPutDown += HandlePutDown;
-
-            enabled = true;
+            Instance = this;
         }
 
-        private void HandlePickUp()
+        void Start()
         {
-            IsBeingGrabbed = true;
-            
-            if (Vector3.Distance(_clockTransform.position, _originalPosition) < 0.05f
-                && _pickClip && _audioSource)
-            {
-                _audioSource.PlayOneShot(_pickClip);
-            }
+            Utilla.Events.GameInitialized += OnGameInitialized;
         }
 
-        private void HandlePutDown()
+        private async void OnGameInitialized(object sender, EventArgs e)
         {
-            IsBeingGrabbed = false;
-
-            if (Vector3.Distance(_clockTransform.position, _originalPosition) < SnapDistance)
-            {
-                SnapToOriginal();
-            }
-            else
-            {
-                _initialPosition = _clockTransform.position;
-                _initialRotation = _clockTransform.rotation;
-            }
+            await SetupClock();
         }
 
-        private void SnapToOriginal()
+        private async Task SetupClock()
         {
-            _clockTransform.position = _originalPosition;
-            _clockTransform.rotation = _originalRotation;
-
-            _initialPosition = _originalPosition;
-            _initialRotation = _originalRotation;
-
-            if (_snapClip && _audioSource)
+            try
             {
-                _audioSource.PlayOneShot(_snapClip);
+                _clockPrefab = await AssetLoader.LoadAsset<GameObject>("CatClock");
+                if (_clockPrefab == null)
+                {
+                    Debug.LogError("[CatClock] Failed to load prefab.");
+                    return;
+                }
+                
+                GameObject clockInstance = Instantiate(_clockPrefab);
+                clockInstance.SetActive(true);
+                clockInstance.transform.position = new Vector3(-65.7865f, 11.7985f, -79.762f);
+                clockInstance.transform.rotation = Quaternion.Euler(358.6325f, 266.6017f, 359.3513f);
+                clockInstance.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+                
+                _clockManager = clockInstance.AddComponent<CatClockManager>();
+                _clockManager.Initialize(clockInstance);
+
+                ClockActions actions = clockInstance.AddComponent<ClockActions>();
+                actions.Initialize(clockInstance);
+
+                Debug.Log("[CatClock] Tick Tock Monke!!");
             }
-        }
-
-        private void Update()
-        {
-            if (!_clockTransform) return;
-
-            if (IsBeingGrabbed)
+            catch (Exception ex)
             {
-                _initialPosition = _clockTransform.position;
-                Plugin.Instance.ClockPosition.Value = _clockTransform.position;
-                Plugin.Instance.ClockRotation.Value = _clockTransform.rotation;
-                Plugin.Instance.Config.Save();
-                return;
+                Debug.LogError("[CatClock] Error setting up clock: " + ex);
             }
-            
-            _interpolationTime += Time.deltaTime * BobbingSpeed;
-            var pingPong = Mathf.PingPong(_interpolationTime, 1f);
-            var smoothT = Mathf.SmoothStep(0f, 1f, pingPong);
-
-            var yOffset = Mathf.Lerp(-BobbingAmplitude, BobbingAmplitude, smoothT);
-            _clockTransform.position = _initialPosition + new Vector3(0f, yOffset, 0f);
-        }
-
-        private void FixedUpdate()
-        {
-            if (!_clockTransform || !IsBeingGrabbed) return;
-
-            transform.rotation = Quaternion.Euler(
-                _initialRotation.eulerAngles.x,
-                _clockTransform.rotation.eulerAngles.y,
-                _initialRotation.eulerAngles.z
-            );
         }
     }
 }
