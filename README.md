@@ -1,3 +1,5 @@
+# WARNING: this repo will not recieve updates anymore, due to me moving onto MelonLoader
+
 # CatClock
 
 ![all](https://img.shields.io/github/downloads/elligurt/CatClock/total)
